@@ -53,7 +53,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Permitimos los orígenes de desarrollo de Angular (SSR y CSR)
-        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:4000"));
+        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:4000","https://tempmpro.netlify.app"));
 
         // Métodos HTTP permitidos para tus servicios del SaaS
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
