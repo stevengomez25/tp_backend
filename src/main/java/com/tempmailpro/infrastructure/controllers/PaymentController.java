@@ -32,26 +32,26 @@ public class PaymentController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Pasamos el billingCycle que nos envía Angular
+        // 1. Creamos la orden en base al plan, monto y ciclo que envía Angular
         Order order = paymentService.createOrder(
                 user,
                 request.getTargetPlan(),
                 request.getAmountInCents(),
-                request.getBillingCycle() // <-- ¡Aquí se lo inyectas!
-        );
+                request.getBillingCycle());
 
-        // El resto sigue igual...
+        // 2. Generamos la firma de integridad con los datos de la orden creada
         String integritySignature = paymentService.generateIntegritySignature(
                 order.getReference(),
                 order.getAmountInCents(),
                 order.getCurrency());
 
+        // 3. Construimos la respuesta asegurándonos de inyectar la firma
         OrderResponse response = new OrderResponse();
         response.setOrderId(order.getId());
         response.setReference(order.getReference());
         response.setAmountInCents(order.getAmountInCents());
         response.setCurrency(order.getCurrency());
-        response.setIntegritySignature(integritySignature);
+        response.setIntegritySignature(integritySignature); // <-- ¡Aquí es donde viaja al Frontend!
 
         return ResponseEntity.ok(response);
     }
@@ -131,9 +131,7 @@ class OrderResponse {
     private String reference;
     private Long amountInCents;
     private String currency;
-
-    public void setIntegritySignature(String integritySignature) {
-    }
+    private String integritySignature;
 }
 
 // ==========================================
