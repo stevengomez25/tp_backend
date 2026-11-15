@@ -35,7 +35,7 @@ public class PaymentService {
      */
     @Transactional
     public Order createOrder(User user, PlanType targetPlan, Long amountInCents, BillingCycle billingCycle) {
-        String uniqueReference = "TMP-OR-" + UUID.randomUUID().toString().substring(0, 18);
+        String uniqueReference = "TMP-REF-" + UUID.randomUUID().toString();
 
         Order order = Order.builder()
                 .reference(uniqueReference)
