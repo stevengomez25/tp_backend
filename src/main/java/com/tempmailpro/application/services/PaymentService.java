@@ -57,7 +57,7 @@ public class PaymentService {
      */
     public String generateIntegritySignature(String reference, Long amountInCents, String currency) {
         try {
-            String concatenated = reference + amountInCents + currency + integritySecret;
+            String concatenated = reference + String.valueOf(amountInCents) + currency + integritySecret;
             logger.info("DEBUG - Cadena concatenada para Wompi: [{}]", concatenated);
             // Llamamos al cálculo una sola vez
             byte[] hash = calculateSha256(concatenated);
