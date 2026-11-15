@@ -18,6 +18,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PaymentService.class);
+
     // Inyecciones de dependencias correctas
     private final JpaOrderRepository orderRepository;
     private final JpaSubscriptionRepository subscriptionRepository;
@@ -56,7 +58,7 @@ public class PaymentService {
     public String generateIntegritySignature(String reference, Long amountInCents, String currency) {
         try {
             String concatenated = reference + amountInCents + currency + integritySecret;
-
+            logger.info("DEBUG - Cadena concatenada para Wompi: [{}]", concatenated);
             // Llamamos al cálculo una sola vez
             byte[] hash = calculateSha256(concatenated);
 
@@ -137,8 +139,9 @@ public class PaymentService {
     // ==========================================
     // MÉTODOS AUXILIARES DE ENCRIPTACIÓN (MÁS LIMPIOS Y SEGUROS)
     // ==========================================
-
+    
     private byte[] calculateSha256(String data) throws NoSuchAlgorithmException {
+        
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         return digest.digest(data.getBytes(StandardCharsets.UTF_8)); // <- UTF-8 obligatorio
     }
