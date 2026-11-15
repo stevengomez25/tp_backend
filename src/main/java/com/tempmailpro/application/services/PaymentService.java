@@ -56,7 +56,11 @@ public class PaymentService {
     public String generateIntegritySignature(String reference, Long amountInCents, String currency) {
         try {
             String concatenated = reference + amountInCents + currency + integritySecret;
-            return bytesToHex(calculateSha256(concatenated));
+
+            // Llamamos al cálculo una sola vez
+            byte[] hash = calculateSha256(concatenated);
+
+            return bytesToHex(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Error al generar firma de integridad", e);
         }
@@ -134,9 +138,9 @@ public class PaymentService {
     // MÉTODOS AUXILIARES DE ENCRIPTACIÓN (MÁS LIMPIOS Y SEGUROS)
     // ==========================================
 
-    private byte[] calculateSha256(String text) throws NoSuchAlgorithmException {
+    private byte[] calculateSha256(String data) throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        return digest.digest(text.getBytes(StandardCharsets.UTF_8));
+        return digest.digest(data.getBytes(StandardCharsets.UTF_8)); // <- UTF-8 obligatorio
     }
 
     private String bytesToHex(byte[] hashBytes) {
