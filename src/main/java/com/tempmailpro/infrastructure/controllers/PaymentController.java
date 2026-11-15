@@ -1,6 +1,7 @@
 package com.tempmailpro.infrastructure.controllers;
 
 import com.tempmailpro.application.services.PaymentService;
+import com.tempmailpro.domain.models.BillingCycle;
 import com.tempmailpro.domain.models.Order;
 import com.tempmailpro.domain.models.PlanType;
 import com.tempmailpro.domain.models.User;
@@ -31,23 +32,26 @@ public class PaymentController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 1. Guardamos la orden pendiente en nuestra DB
-        Order order = paymentService.createOrder(user, request.getTargetPlan(), request.getAmountInCents());
+        // Pasamos el billingCycle que nos envía Angular
+        Order order = paymentService.createOrder(
+                user,
+                request.getTargetPlan(),
+                request.getAmountInCents(),
+                request.getBillingCycle() // <-- ¡Aquí se lo inyectas!
+        );
 
-        // 2. Calculamos la firma de integridad obligatoria para Wompi
+        // El resto sigue igual...
         String integritySignature = paymentService.generateIntegritySignature(
                 order.getReference(),
                 order.getAmountInCents(),
-                order.getCurrency()
-        );
+                order.getCurrency());
 
-        // 3. Empacamos todo hacia el frontend
         OrderResponse response = new OrderResponse();
         response.setOrderId(order.getId());
         response.setReference(order.getReference());
         response.setAmountInCents(order.getAmountInCents());
         response.setCurrency(order.getCurrency());
-        response.setIntegritySignature(integritySignature); // <-- Clave para el widget
+        response.setIntegritySignature(integritySignature);
 
         return ResponseEntity.ok(response);
     }
@@ -62,16 +66,18 @@ public class PaymentController {
             // Extraemos la información anidada del payload de Wompi
             var transaction = payload.getData().getTransaction();
 
-            // Wompi no manda el Hash directamente plano en raíces básicas, usualmente viene en la firma (signature)
+            // Wompi no manda el Hash directamente plano en raíces básicas, usualmente viene
+            // en la firma (signature)
             // que calcula uniendo propiedades + marcas de tiempo.
             paymentService.processWebhook(
                     transaction.getReference(),
                     transaction.getStatus(),
                     payload.getSignature().getChecksum(), // Firma enviada por Wompi
-                    payload.getTimestamp().toString()     // Timestamp del evento
+                    payload.getTimestamp().toString() // Timestamp del evento
             );
 
-            // Respondemos 200 OK estricto para que Wompi sepa que procesamos el evento y no reintente
+            // Respondemos 200 OK estricto para que Wompi sepa que procesamos el evento y no
+            // reintente
             return ResponseEntity.ok("Event processed successfully");
 
         } catch (SecurityException e) {
@@ -83,6 +89,7 @@ public class PaymentController {
             return ResponseEntity.status(500).body("Internal error");
         }
     }
+
     /**
      * ENDPOINT 3: Consulta rápida de estatus para la pantalla de confirmación
      * ACCESO: Autenticado vía JWT
@@ -93,7 +100,8 @@ public class PaymentController {
         Order order = orderRepository.findByReference(reference)
                 .orElseThrow(() -> new RuntimeException("Transacción no registrada"));
 
-        // Mapeamos los detalles limpios de la compra para que la UI los pinte amigablemente
+        // Mapeamos los detalles limpios de la compra para que la UI los pinte
+        // amigablemente
         OrderSummaryResponse summary = new OrderSummaryResponse();
         summary.setReference(order.getReference());
         summary.setAmountInCents(order.getAmountInCents());
@@ -114,6 +122,7 @@ public class PaymentController {
 class CheckoutRequest {
     private PlanType targetPlan;
     private Long amountInCents;
+    private BillingCycle billingCycle;
 }
 
 @Data
@@ -156,9 +165,17 @@ class WompiTransaction {
 
     // Métodos helper rápidos para simplificar el mapeo a tipos estándar de Java
 
-    public String getReference() { return reference; }
-    public String getStatus() { return status; }
-    public Long getAmountInCents() { return amount_in_cents; }
+    public String getReference() {
+        return reference;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public Long getAmountInCents() {
+        return amount_in_cents;
+    }
 }
 
 @Data

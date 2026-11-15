@@ -28,12 +28,11 @@ public class PaymentService {
     @Value("${wompi.integrity-secret}")
     private String integritySecret;
 
-
     /**
      * 1. Crea la orden de pago inicial en nuestra DB
      */
     @Transactional
-    public Order createOrder(User user, PlanType targetPlan, Long amountInCents) {
+    public Order createOrder(User user, PlanType targetPlan, Long amountInCents, BillingCycle billingCycle) {
         String uniqueReference = "TMP-OR-" + UUID.randomUUID().toString().substring(0, 18);
 
         Order order = Order.builder()
@@ -44,13 +43,15 @@ public class PaymentService {
                 .currency("COP")
                 .targetPlan(targetPlan)
                 .status("PENDING")
+                .billingCycle(billingCycle) // <-- ¡Aquí estaba el campo faltante!
                 .build();
 
         return orderRepository.save(order);
     }
 
     /**
-     * Genera la firma de integridad requerida por el Widget de Wompi (Arreglado sin appends raros)
+     * Genera la firma de integridad requerida por el Widget de Wompi (Arreglado sin
+     * appends raros)
      */
     public String generateIntegritySignature(String reference, Long amountInCents, String currency) {
         try {
@@ -68,14 +69,16 @@ public class PaymentService {
     public void processWebhook(String reference, String wompiStatus, String receivedHash, String timestamp) {
 
         Order order = orderRepository.findByReference(reference)
-                .orElseThrow(() -> new RuntimeException("Orden de pago no encontrada para la referencia: " + reference));
+                .orElseThrow(
+                        () -> new RuntimeException("Orden de pago no encontrada para la referencia: " + reference));
 
         if (!"PENDING".equals(order.getStatus())) {
             return;
         }
 
         // VALIDACIÓN DE SEGURIDAD (Anti-Fraude)
-        if (!isValidWompiSignature(reference, wompiStatus, order.getAmountInCents().toString(), timestamp, receivedHash)) {
+        if (!isValidWompiSignature(reference, wompiStatus, order.getAmountInCents().toString(), timestamp,
+                receivedHash)) {
             order.setStatus("ERROR_SIGNATURE_MISMATCH");
             orderRepository.save(order);
             throw new SecurityException("Firma del webhook de Wompi inválida. Intento de fraude detectado.");
@@ -97,9 +100,10 @@ public class PaymentService {
                         .organization(organization)
                         .build());
 
-        LocalDateTime startFrom = (subscription.getEndsAt() != null && subscription.getEndsAt().isAfter(LocalDateTime.now()))
-                ? subscription.getEndsAt()
-                : LocalDateTime.now();
+        LocalDateTime startFrom = (subscription.getEndsAt() != null
+                && subscription.getEndsAt().isAfter(LocalDateTime.now()))
+                        ? subscription.getEndsAt()
+                        : LocalDateTime.now();
 
         // AQUÍ USA EL PARÁMETRO ENTRANTE DIRECTAMENTE:
         int daysToExtend = (billingCycle == BillingCycle.YEARLY) ? 365 : 30;
@@ -115,7 +119,8 @@ public class PaymentService {
     /**
      * Validación de firma del Webhook arreglada usando funciones auxiliares limpias
      */
-    private boolean isValidWompiSignature(String reference, String status, String amountCents, String timestamp, String receivedHash) {
+    private boolean isValidWompiSignature(String reference, String status, String amountCents, String timestamp,
+            String receivedHash) {
         try {
             String concatenatedProperties = reference + status + amountCents + timestamp + webhookSecret;
             String calculatedHash = bytesToHex(calculateSha256(concatenatedProperties));
@@ -137,7 +142,8 @@ public class PaymentService {
     private String bytesToHex(byte[] hashBytes) {
         StringBuilder hexString = new StringBuilder();
         for (byte b : hashBytes) {
-            // Convierte de forma segura cada byte a hexadecimal de 2 caracteres sin romper la sintaxis
+            // Convierte de forma segura cada byte a hexadecimal de 2 caracteres sin romper
+            // la sintaxis
             hexString.append(String.format("%02x", b));
         }
         return hexString.toString();
@@ -146,12 +152,12 @@ public class PaymentService {
     private Long getBaseMonthlyPriceInCents(PlanType planType) {
         return switch (planType) {
             case FREE -> 0L;
-            case PREMIUM -> 1900000L;       // Ej: $19.000 COP
-            case PREMIUM_PLUS -> 3900000L;  // Ej: $39.000 COP
-            case STARTER_TEAM -> 9900000L;  // Ej: $99.000 COP (Hasta 10 usuarios)
-            case GROWTH_TEAM -> 24900000L;  // Ej: $249.000 COP (Hasta 25 usuarios)
-            case SCALE_UP -> 59900000L;     // Ej: $599.000 COP (Hasta 100 usuarios)
-            case ENTERPRISE -> 199900000L;  // Ej: $1'999.000 COP
+            case PREMIUM -> 1900000L; // Ej: $19.000 COP
+            case PREMIUM_PLUS -> 3900000L; // Ej: $39.000 COP
+            case STARTER_TEAM -> 9900000L; // Ej: $99.000 COP (Hasta 10 usuarios)
+            case GROWTH_TEAM -> 24900000L; // Ej: $249.000 COP (Hasta 25 usuarios)
+            case SCALE_UP -> 59900000L; // Ej: $599.000 COP (Hasta 100 usuarios)
+            case ENTERPRISE -> 199900000L; // Ej: $1'999.000 COP
         };
     }
 
