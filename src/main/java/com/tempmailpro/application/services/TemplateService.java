@@ -68,14 +68,19 @@ public class TemplateService {
             throw new IllegalArgumentException("El asunto del correo no puede estar vacío.");
         }
 
-        Folder folder = null;
-        if (request.getFolderId() != null) {
-            folder = folderRepository.findById(request.getFolderId())
-                    .orElseThrow(() -> new RuntimeException("La carpeta especificada no existe."));
+        Long folderId = (Long) request.getFolderId();
+        
+        if (request.getFolderId() == null) {
+            throw new RuntimeException("La carpeta especificada no existe.");
+        }
+        
 
-            if (!folder.getOrganization().getId().equals(organization.getId())) {
-                throw new SecurityException("Acceso denegado: No puedes guardar una plantilla en una carpeta de otra organización.");
-            }
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new RuntimeException("La carpeta especificada no existe."));
+
+        if (!folder.getOrganization().getId().equals(organization.getId())) {
+            throw new SecurityException(
+                    "Acceso denegado: No puedes guardar una plantilla en una carpeta de otra organización.");
         }
 
         Template template = new Template();
@@ -89,7 +94,7 @@ public class TemplateService {
     }
 
     @Transactional
-    public void deleteTemplate(Long id){
+    public void deleteTemplate(Long id) {
         // 1. Obtener el usuario actual (quién está haciendo la petición)
         String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User currentUser = userRepository.findByUsername(username)
@@ -99,16 +104,19 @@ public class TemplateService {
         Template template = templateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("La plantilla especificada no existe."));
 
-        // 3. ¡SEGURIDAD CRÍTICA! Validar que la plantilla pertenezca a la organización del usuario
+        // 3. ¡SEGURIDAD CRÍTICA! Validar que la plantilla pertenezca a la organización
+        // del usuario
         Long currentUserOrgId = currentUser.getOrganization().getId();
         Long templateOrgId = template.getOwner().getOrganization().getId();
 
         if (!currentUserOrgId.equals(templateOrgId)) {
-            // Si un usuario intenta borrar un ID que no es de su empresa, bloqueamos la acción
+            // Si un usuario intenta borrar un ID que no es de su empresa, bloqueamos la
+            // acción
             throw new SecurityException("Acceso denegado: No tienes permiso para eliminar esta plantilla.");
         }
 
-        // 4. Ejecutar la eliminación (Hard Delete usando el método nativo de JpaRepository)
+        // 4. Ejecutar la eliminación (Hard Delete usando el método nativo de
+        // JpaRepository)
         templateRepository.delete(template);
     }
 
@@ -141,8 +149,10 @@ public class TemplateService {
 
         return stats;
     }
+
     public Template getTemplateById(Long id) {
-        // Busca en la base de datos y si alguien intenta buscar un ID fantasma, revienta controladamente
+        // Busca en la base de datos y si alguien intenta buscar un ID fantasma,
+        // revienta controladamente
         return templateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Plantilla no encontrada"));
     }

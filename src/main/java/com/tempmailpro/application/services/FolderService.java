@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -20,8 +21,7 @@ public class FolderService {
     public List<Folder> getFoldersForUser(User user) {
         return folderRepository.findVisibleFolders(
                 user.getOrganization().getId(),
-                user.getId()
-        );
+                user.getId());
     }
 
     @Transactional
@@ -42,10 +42,12 @@ public class FolderService {
         switch (subscription.getPlanType()) {
             case FREE:
                 if (currentFolderCount >= 1) { // Cambiado de 3 a 1 carpeta max
-                    throw new PlanLimitExceededException("El plan gratuito está limitado a 1 sola carpeta. Actualiza tu plan para almacenamiento ilimitado.");
+                    throw new PlanLimitExceededException(
+                            "El plan gratuito está limitado a 1 sola carpeta. Actualiza tu plan para almacenamiento ilimitado.");
                 }
                 if (isShared) {
-                    throw new IllegalArgumentException("Las carpetas compartidas pertenecen a los planes corporativos B2B.");
+                    throw new IllegalArgumentException(
+                            "Las carpetas compartidas pertenecen a los planes corporativos B2B.");
                 }
                 break;
 
@@ -75,12 +77,13 @@ public class FolderService {
         }
 
         // Construcción y guardado seguro de la entidad
-        Folder folder = Folder.builder()
-                .name(name.trim())
-                .organization(organization)
-                .createdBy(user)
-                .isShared(isShared)
-                .build();
+        Folder folder = Objects.requireNonNull(
+                Folder.builder()
+                        .name(name.trim())
+                        .organization(organization)
+                        .createdBy(user)
+                        .isShared(isShared)
+                        .build());
 
         return folderRepository.save(folder);
     }

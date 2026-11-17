@@ -13,7 +13,7 @@ import com.tempmailpro.infrastructure.security.jwt.JwtUtil;
 import com.tempmailpro.infrastructure.adapters.JpaOrganizationRepository;
 import com.tempmailpro.infrastructure.adapters.JpaSubscriptionRepository;
 
-
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -45,7 +45,8 @@ public class AuthService {
 
             // Verificar si hay cupos (Seats)
             if (!organizationService.hasAvailableSeats(organization)) {
-                throw new RuntimeException("La organización ha alcanzado el límite de miembros. Contacta al administrador.");
+                throw new RuntimeException(
+                        "La organización ha alcanzado el límite de miembros. Contacta al administrador.");
             }
 
             role = UserRole.USER; // Entra como trabajador
@@ -56,15 +57,16 @@ public class AuthService {
         }
 
         // 3. Crear y guardar el usuario
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .organization(organization)
-                .role(role)
-                .status(UserStatus.ACTIVE) // Asumo que tienes este Enum
-                .plan(UserPlan.FREE)       // Por defecto
-                .build();
+        User user = Objects.requireNonNull(
+                User.builder()
+                        .username(request.getUsername())
+                        .email(request.getEmail())
+                        .password(passwordEncoder.encode(request.getPassword()))
+                        .organization(organization)
+                        .role(role)
+                        .status(UserStatus.ACTIVE) // Asumo que tienes este Enum
+                        .plan(UserPlan.FREE) // Por defecto
+                        .build());
 
         return userRepository.save(user);
     }
@@ -80,17 +82,18 @@ public class AuthService {
         org.setActive(true);
         Organization savedOrg = organizationRepository.save(org);
 
-        // 2. SOLUCIÓN: Crear y guardar la suscripción FREE inicial para que no falle el Dashboard
-        Subscription initialSub = Subscription.builder()
-                .organization(savedOrg)
-                .planType(PlanType.FREE)
-                .status(SubscriptionStatus.ACTIVE)
-                .billingCycle(BillingCycle.MONTHLY)
-                .maxUsers(1)
-                .aiRequestsLimit(0)
-                .aiRequestsUsed(0)
-                .endsAt(null) // El plan gratuito no expira automáticamente
-                .build();
+        // 2. SOLUCIÓN: Crear y guardar la suscripción FREE inicial para que no falle el
+        // Dashboard
+        Subscription initialSub = Objects.requireNonNull(
+                Subscription.builder()
+                        .organization(savedOrg)
+                        .planType(PlanType.FREE)
+                        .status(SubscriptionStatus.ACTIVE)
+                        .billingCycle(BillingCycle.MONTHLY)
+                        .maxUsers(1)
+                        .aiRequestsLimit(0)
+                        .aiRequestsUsed(0)
+                        .build());
         subscriptionRepository.save(initialSub);
 
         return savedOrg;

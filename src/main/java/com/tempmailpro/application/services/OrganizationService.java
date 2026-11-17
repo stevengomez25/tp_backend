@@ -1,7 +1,6 @@
 package com.tempmailpro.application.services;
 
 import com.tempmailpro.domain.models.Organization;
-import com.tempmailpro.domain.models.User;
 import com.tempmailpro.infrastructure.adapters.JpaOrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

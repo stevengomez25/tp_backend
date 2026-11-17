@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -37,16 +38,17 @@ public class PaymentService {
     public Order createOrder(User user, PlanType targetPlan, Long amountInCents, BillingCycle billingCycle) {
         String uniqueReference = "TMP-REF-" + UUID.randomUUID().toString();
 
-        Order order = Order.builder()
-                .reference(uniqueReference)
-                .organization(user.getOrganization())
-                .user(user)
-                .amountInCents(amountInCents)
-                .currency("COP")
-                .targetPlan(targetPlan)
-                .status("PENDING")
-                .billingCycle(billingCycle) // <-- ¡Aquí estaba el campo faltante!
-                .build();
+        Order order = Objects.requireNonNull(
+                Order.builder()
+                        .reference(uniqueReference)
+                        .organization(user.getOrganization())
+                        .user(user)
+                        .amountInCents(amountInCents)
+                        .currency("COP")
+                        .targetPlan(targetPlan)
+                        .status("PENDING")
+                        .billingCycle(billingCycle) // <-- ¡Aquí estaba el campo faltante!
+                        .build());
 
         return orderRepository.save(order);
     }
@@ -139,9 +141,9 @@ public class PaymentService {
     // ==========================================
     // MÉTODOS AUXILIARES DE ENCRIPTACIÓN (MÁS LIMPIOS Y SEGUROS)
     // ==========================================
-    
+
     private byte[] calculateSha256(String data) throws NoSuchAlgorithmException {
-        
+
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         return digest.digest(data.getBytes(StandardCharsets.UTF_8)); // <- UTF-8 obligatorio
     }
