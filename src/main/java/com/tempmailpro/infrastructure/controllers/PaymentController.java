@@ -9,6 +9,7 @@ import com.tempmailpro.infrastructure.adapters.JpaOrderRepository;
 import com.tempmailpro.infrastructure.adapters.JpaUserRepository;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -179,7 +180,7 @@ class WompiTransaction {
 @Data
 class WompiSignature {
     private String checksum; // El hash SHA-256 enviado para verificar autoría
-    private String properties;
+    private List<String> properties;
 }
 
 @Data
