@@ -71,6 +71,7 @@ public class PaymentController {
             // en la firma (signature)
             // que calcula uniendo propiedades + marcas de tiempo.
             paymentService.processWebhook(
+                    transaction.getId(),
                     transaction.getReference(),
                     transaction.getStatus(),
                     payload.getSignature().getChecksum(), // Firma enviada por Wompi

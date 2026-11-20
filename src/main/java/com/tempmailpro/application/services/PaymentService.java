@@ -74,7 +74,7 @@ public class PaymentService {
      * 2. Procesa la respuesta del Webhook de Wompi de forma segura
      */
     @Transactional
-    public void processWebhook(String reference, String wompiStatus, String receivedHash, String timestamp) {
+    public void processWebhook(String transactionId, String reference, String wompiStatus, String receivedHash, String timestamp) {
 
         Order order = orderRepository.findByReference(reference)
                 .orElseThrow(
@@ -127,10 +127,10 @@ public class PaymentService {
     /**
      * Validación de firma del Webhook arreglada usando funciones auxiliares limpias
      */
-    private boolean isValidWompiSignature(String reference, String status, String amountCents, String timestamp,
+    private boolean isValidWompiSignature(String transactionId, String status, String amountCents, String timestamp,
             String receivedHash) {
         try {
-            String concatenatedProperties = reference + status + amountCents + timestamp + webhookSecret;
+            String concatenatedProperties = transactionId + status + amountCents + timestamp + webhookSecret;
             String calculatedHash = bytesToHex(calculateSha256(concatenatedProperties));
             return calculatedHash.equals(receivedHash);
         } catch (NoSuchAlgorithmException e) {
