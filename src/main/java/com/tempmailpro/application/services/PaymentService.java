@@ -85,7 +85,7 @@ public class PaymentService {
         }
 
         // VALIDACIÓN DE SEGURIDAD (Anti-Fraude)
-        if (!isValidWompiSignature(reference, wompiStatus, order.getAmountInCents().toString(), timestamp,
+        if (!isValidWompiSignature(transactionId, wompiStatus, order.getAmountInCents().toString(), timestamp,
                 receivedHash)) {
             order.setStatus("ERROR_SIGNATURE_MISMATCH");
             orderRepository.save(order);
