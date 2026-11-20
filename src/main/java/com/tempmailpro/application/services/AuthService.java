@@ -13,6 +13,8 @@ import com.tempmailpro.infrastructure.security.jwt.JwtUtil;
 import com.tempmailpro.infrastructure.adapters.JpaOrganizationRepository;
 import com.tempmailpro.infrastructure.adapters.JpaSubscriptionRepository;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -100,15 +102,22 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByEmail(request.getUsername())
+        String loginInput = request.getUsername();
+        User user = userRepository.findByEmail(loginInput)
+                .or(() -> userRepository.findByUsername(loginInput))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
         }
-
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", user.getEmail());
+        claims.put("name", user.getUsername());
+        if (user.getOrganization() != null) {
+            claims.put("organizationId", user.getOrganization().getId());
+        }
         // Generamos el token real
-        String token = jwtUtil.generateToken(user.getUsername());
+        String token = jwtUtil.generateToken(user.getUsername(), claims);
 
         return new AuthResponse(token, user.getUsername());
     }
